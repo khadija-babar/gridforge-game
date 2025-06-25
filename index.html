@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridForge Visualization</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        
+        .game-title {
+            color: #4fc3f7;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 5px rgba(79, 195, 247, 0.5);
+        }
+        
+        .subtitle {
+            color: #81c784;
+            font-style: italic;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .game-board {
+            flex: 2;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            margin-bottom: 20px;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        
+        .mountain { background-color: #7b1fa2; color: white; }
+        .plain { background-color: #8d6e63; color: white; }
+        .water { background-color: #1976d2; color: white; }
+        .forest { background-color: #2e7d32; color: white; }
+        .human { background-color: #ffd54f; color: black; }
+        .door { background-color: #e53935; color: white; }
+        .enemy { background-color: #c62828; color: white; }
+        .building { background-color: #e0e0e0; color: black; }
+        
+        .game-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .panel {
+            background-color: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        
+        .panel-title {
+            color: #4fc3f7;
+            margin-top: 0;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .health-bar {
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background-color: #e53935;
+            width: 100%;
+            transition: width 0.3s;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #444;
+        }
+        
+        button:disabled {
+            background-color: #222;
+            color: #666;
+            cursor: not-allowed;
+        }
+        
+        .time-indicator {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .day { background-color: #ffd54f; color: black; }
+        .night { background-color: #0d47a1; color: white; }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            border: 2px solid #4fc3f7;
+        }
+        
+        .modal-title {
+            color: #4fc3f7;
+            margin-top: 0;
+        }
+        
+        .intro-text {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .intro-text p {
+            margin-bottom: 10px;
+        }
+        
+        .highlight {
+            color: #ffd54f;
+            font-weight: bold;
+        }
+        
+        .danger {
+            color: #e53935;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #81c784;
+            font-weight: bold;
+        }
+        
+        .rps-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .rps-option {
+            padding: 10px 20px;
+            border: 2px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .rps-option:hover {
+            border-color: #4fc3f7;
+            transform: scale(1.05);
+        }
+        
+        .rps-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #444;
+        }
+        
+        .event-log {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #121212;
+            border-radius: 5px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #333;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .legend {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="game-title">GridForge</h1>
+            <p class="subtitle">War of Rock, Paper, Scissors</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="game-board">
+                <div class="time-indicator day" id="timeIndicator">DAYTIME</div>
+                <div class="grid" id="gameGrid"></div>
+                
+                <div class="panel">
+                    <h3 class="panel-title">Controls</h3>
+                    <div class="controls">
+                        <button id="moveBtn">Move (W/A/S/D)</button>
+                        <button id="medicineBtn" disabled>Use Medicine</button>
+                        <button id="restartBtn">Restart Game</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-info">
+                <div class="panel">
+                    <h3 class="panel-title">Player Stats</h3>
+                    <div>Health: <span id="healthValue">100</span>/100</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="healthBar" style="width: 100%;"></div>
+                    </div>
+                    <div>Moves: <span id="moveCount">0</span></div>
+                </div>
+                
+                <div class="panel">
+                    <h3 class="panel-title">Inventory</h3>
+                    <div id="inventory">
+                        <div class="inventory-item">
+                            <span>Wood:</span>
+                            <span id="woodCount">1/5</span>
+                        </div>
+                        <div class="inventory-item">
+                            <span>Metal:</span>
+                            <span id="metalCount">1/5</span>
+                        </div>
+                        <div class="inventory-item">
+                            <span>Rock:</span>
+                            <span id="rockCount">1/5</span>
+                        </div>
+                        <div class="inventory-item">
+                            <span>Medicine:</span>
+                            <span id="medicineCount">1/1</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h3 class="panel-title">Legend</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color human"></div>
+                            <span>Human (H)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color door"></div>
+                            <span>Door (D)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color mountain"></div>
+                            <span>Mountain (M)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color plain"></div>
+                            <span>Plain (P)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color water"></div>
+                            <span>Water (W)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color forest"></div>
+                            <span>Forest (F)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color enemy"></div>
+                            <span>Enemy (E)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color building"></div>
+                            <span>Building (B)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h3 class="panel-title">Event Log</h3>
+                    <div class="event-log" id="eventLog"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="introModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Welcome to GridForge</h2>
+            <div class="intro-text">
+                <p>In a shattered world ruled by chaos...</p>
+                <p>You are the last hope of humanity.</p>
+                <p>Explore the grid, collect resources, craft survival tools.</p>
+                <p>But remember...</p>
+                <p>Only those who master <span class="highlight">Rock, Paper, and Scissors</span></p>
+                <p>Can win the war against the rising enemy forces.</p>
+            </div>
+            <button id="startGameBtn">Begin Your Journey</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="rpsModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Enemy Encounter!</h2>
+            <p>You need to play Rock-Paper-Scissors with the enemy!</p>
+            <div class="rps-options" id="rpsOptions">
+                <div class="rps-option" data-choice="rock">Rock (1 Rock)</div>
+                <div class="rps-option" data-choice="paper">Paper (2 Wood)</div>
+                <div class="rps-option" data-choice="scissors">Scissors (1 Metal)</div>
+            </div>
+            <div id="rpsResult"></div>
+            <button id="rpsContinueBtn" style="display: none;">Continue</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="gameOverTitle">Game Over</h2>
+            <p id="gameOverMessage"></p>
+            <button id="gameOverBtn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            gridSize: 10,
+            player: {
+                x: 5,
+                y: 5,
+                health: 100,
+                moves: 0,
+                isDay: true
+            },
+            inventory: {
+                wood: { current: 1, max: 5 },
+                metal: { current: 1, max: 5 },
+                rock: { current: 1, max: 5 },
+                medicine: { current: 1, max: 1 }
+            },
+            door: { x: 0, y: 0 },
+            grid: [],
+            isMoving: false,
+            gameActive: true
+        };
+
+        // Terrain types
+        const Terrain = {
+            MOUNTAIN: 'mountain',
+            PLAIN: 'plain',
+            WATER: 'water',
+            FOREST: 'forest',
+            HUMAN: 'human',
+            DOOR: 'door',
+            ENEMY: 'enemy',
+            BUILDING: 'building'
+        };
+
+        // DOM elements
+        const elements = {
+            gameGrid: document.getElementById('gameGrid'),
+            healthValue: document.getElementById('healthValue'),
+            healthBar: document.getElementById('healthBar'),
+            moveCount: document.getElementById('moveCount'),
+            woodCount: document.getElementById('woodCount'),
+            metalCount: document.getElementById('metalCount'),
+            rockCount: document.getElementById('rockCount'),
+            medicineCount: document.getElementById('medicineCount'),
+            timeIndicator: document.getElementById('timeIndicator'),
+            moveBtn: document.getElementById('moveBtn'),
+            medicineBtn: document.getElementById('medicineBtn'),
+            restartBtn: document.getElementById('restartBtn'),
+            eventLog: document.getElementById('eventLog'),
+            introModal: document.getElementById('introModal'),
+            startGameBtn: document.getElementById('startGameBtn'),
+            rpsModal: document.getElementById('rpsModal'),
+            rpsOptions: document.getElementById('rpsOptions'),
+            rpsResult: document.getElementById('rpsResult'),
+            rpsContinueBtn: document.getElementById('rpsContinueBtn'),
+            gameOverModal: document.getElementById('gameOverModal'),
+            gameOverTitle: document.getElementById('gameOverTitle'),
+            gameOverMessage: document.getElementById('gameOverMessage'),
+            gameOverBtn: document.getElementById('gameOverBtn')
+        };
+
+        // Initialize game
+        function initGame() {
+            // Show intro modal
+            elements.introModal.style.display = 'flex';
+            
+            // Set up event listeners
+            elements.startGameBtn.addEventListener('click', startGame);
+            elements.moveBtn.addEventListener('click', toggleMovement);
+            elements.medicineBtn.addEventListener('click', useMedicine);
+            elements.restartBtn.addEventListener('click', resetGame);
+            elements.rpsContinueBtn.addEventListener('click', closeRpsModal);
+            elements.gameOverBtn.addEventListener('click', resetGame);
+            
+            // Initialize grid
+            generateGrid();
+            renderGrid();
+            updateUI();
+            
+            // Add keyboard movement controls
+            document.addEventListener('keydown', handleKeyPress);
+        }
+
+        // Start the game
+        function startGame() {
+            elements.introModal.style.display = 'none';
+            addLogEntry("Game started! Find the red door to win.");
+            addLogEntry("Collect resources to fight enemies and survive.");
+        }
+
+        // Generate the game grid
+        function generateGrid() {
+            // Place door randomly on edges
+            const edge = Math.floor(Math.random() * 4);
+            switch(edge) {
+                case 0: 
+                    gameState.door.x = 0;
+                    gameState.door.y = Math.floor(Math.random() * gameState.gridSize);
+                    break;
+                case 1:
+                    gameState.door.x = Math.floor(Math.random() * gameState.gridSize);
+                    gameState.door.y = gameState.gridSize - 1;
+                    break;
+                case 2:
+                    gameState.door.x = gameState.gridSize - 1;
+                    gameState.door.y = Math.floor(Math.random() * gameState.gridSize);
+                    break;
+                case 3:
+                    gameState.door.x = Math.floor(Math.random() * gameState.gridSize);
+                    gameState.door.y = 0;
+                    break;
+            }
+            
+            // Initialize grid
+            for (let i = 0; i < gameState.gridSize; i++) {
+                gameState.grid[i] = [];
+                for (let j = 0; j < gameState.gridSize; j++) {
+                    if (i === gameState.player.x && j === gameState.player.y) {
+                        gameState.grid[i][j] = Terrain.HUMAN;
+                    } else if (i === gameState.door.x && j === gameState.door.y) {
+                        gameState.grid[i][j] = Terrain.DOOR;
+                    } else {
+                        // Random terrain
+                        const terrainTypes = [
+                            Terrain.MOUNTAIN, 
+                            Terrain.PLAIN, 
+                            Terrain.WATER, 
+                            Terrain.FOREST
+                        ];
+                        gameState.grid[i][j] = terrainTypes[Math.floor(Math.random() * terrainTypes.length)];
+                    }
+                }
+            }
+            
+            // Place enemies
+            const numEnemies = Math.floor((gameState.gridSize * gameState.gridSize) / 10);
+            for (let i = 0; i < numEnemies; i++) {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * gameState.gridSize);
+                    y = Math.floor(Math.random() * gameState.gridSize);
+                } while (
+                    (x === gameState.player.x && y === gameState.player.y) ||
+                    (x === gameState.door.x && y === gameState.door.y) ||
+                    gameState.grid[x][y] !== Terrain.PLAIN
+                );
+                
+                gameState.grid[x][y] = Terrain.ENEMY;
+            }
+            
+            // Place buildings
+            const numBuildings = Math.floor((gameState.gridSize * gameState.gridSize) / 20);
+            for (let i = 0; i < numBuildings; i++) {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * gameState.gridSize);
+                    y = Math.floor(Math.random() * gameState.gridSize);
+                } while (
+                    (x === gameState.player.x && y === gameState.player.y) ||
+                    (x === gameState.door.x && y === gameState.door.y) ||
+                    gameState.grid[x][y] !== Terrain.PLAIN
+                );
+                
+                gameState.grid[x][y] = Terrain.BUILDING;
+            }
+        }
+
+        // Render the grid
+        function renderGrid() {
+            elements.gameGrid.innerHTML = '';
+            
+            for (let i = 0; i < gameState.gridSize; i++) {
+                for (let j = 0; j < gameState.gridSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${gameState.grid[i][j]}`;
+                    
+                    // Set cell content based on terrain type
+                    switch(gameState.grid[i][j]) {
+                        case Terrain.MOUNTAIN: cell.textContent = 'M'; break;
+                        case Terrain.PLAIN: cell.textContent = 'P'; break;
+                        case Terrain.WATER: cell.textContent = 'W'; break;
+                        case Terrain.FOREST: cell.textContent = 'F'; break;
+                        case Terrain.HUMAN: cell.textContent = 'H'; break;
+                        case Terrain.DOOR: cell.textContent = 'D'; break;
+                        case Terrain.ENEMY: cell.textContent = 'E'; break;
+                        case Terrain.BUILDING: cell.textContent = 'B'; break;
+                    }
+                    
+                    // Hide terrain at night (except player)
+                    if (!gameState.player.isDay && gameState.grid[i][j] !== Terrain.HUMAN) {
+                        cell.style.backgroundColor = '#121212';
+                        cell.style.color = '#121212';
+                    }
+                    
+                    elements.gameGrid.appendChild(cell);
+                }
+            }
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update health
+            elements.healthValue.textContent = gameState.player.health;
+            elements.healthBar.style.width = `${gameState.player.health}%`;
+            
+            // Update inventory
+            elements.woodCount.textContent = `${gameState.inventory.wood.current}/${gameState.inventory.wood.max}`;
+            elements.metalCount.textContent = `${gameState.inventory.metal.current}/${gameState.inventory.metal.max}`;
+            elements.rockCount.textContent = `${gameState.inventory.rock.current}/${gameState.inventory.rock.max}`;
+            elements.medicineCount.textContent = `${gameState.inventory.medicine.current}/${gameState.inventory.medicine.max}`;
+            
+            // Update move count and time
+            elements.moveCount.textContent = gameState.player.moves;
+            elements.timeIndicator.textContent = gameState.player.isDay ? 'DAYTIME' : 'NIGHTTIME';
+            elements.timeIndicator.className = `time-indicator ${gameState.player.isDay ? 'day' : 'night'}`;
+            
+            // Update medicine button state
+            elements.medicineBtn.disabled = 
+                gameState.player.health > 30 || 
+                gameState.inventory.medicine.current === 0;
+        }
+
+        // Toggle movement mode
+        function toggleMovement() {
+            gameState.isMoving = !gameState.isMoving;
+            elements.moveBtn.textContent = gameState.isMoving ? 'Cancel Movement' : 'Move (W/A/S/D)';
+            
+            if (gameState.isMoving) {
+                addLogEntry("Movement mode activated. Use W/A/S/D to move.");
+            } else {
+                addLogEntry("Movement mode canceled.");
+            }
+        }
+
+        // Handle keyboard movement
+        function handleKeyPress(e) {
+            if (!gameState.isMoving || !gameState.gameActive) return;
+            
+            let newX = gameState.player.x;
+            let newY = gameState.player.y;
+            let moved = false;
+            
+            switch(e.key.toLowerCase()) {
+                case 'w':
+                    if (newX > 0) {
+                        newX--;
+                        moved = true;
+                    }
+                    break;
+                case 'a':
+                    if (newY > 0) {
+                        newY--;
+                        moved = true;
+                    }
+                    break;
+                case 's':
+                    if (newX < gameState.gridSize - 1) {
+                        newX++;
+                        moved = true;
+                    }
+                    break;
+                case 'd':
+                    if (newY < gameState.gridSize - 1) {
+                        newY++;
+                        moved = true;
+                    }
+                    break;
+                default:
+                    return;
+            }
+            
+            if (moved) {
+                movePlayer(newX, newY);
+            } else {
+                addLogEntry("Can't move further in that direction!");
+            }
+        }
+
+        // Move player to new position
+        function movePlayer(newX, newY) {
+            // Don't move if position didn't change
+            if (newX === gameState.player.x && newY === gameState.player.y) {
+                return;
+            }
+            
+            const terrain = gameState.grid[newX][newY];
+            
+            // Handle different terrain types
+            switch(terrain) {
+                case Terrain.MOUNTAIN:
+                    gameState.player.health -= 10;
+                    addLogEntry("You moved through a mountain! Health -10.", 'danger');
+                    break;
+                case Terrain.FOREST:
+                    gameState.player.health -= 5;
+                    addLogEntry("You moved through a forest! Health -5.", 'danger');
+                    break;
+                case Terrain.PLAIN:
+                    gameState.player.health -= 5;
+                    addLogEntry("You moved through a plain! Health -5.", 'danger');
+                    break;
+                case Terrain.WATER:
+                    if (gameState.inventory.wood.current > 0) {
+                        if (confirm("Water ahead! Make boat with 1 Wood?")) {
+                            gameState.inventory.wood.current--;
+                            addLogEntry("Boat made with 1 Wood. Moved across water.", 'highlight');
+                        } else {
+                            addLogEntry("Move canceled.");
+                            return;
+                        }
+                    } else {
+                        addLogEntry("Not enough wood for a boat. Move canceled.", 'danger');
+                        return;
+                    }
+                    break;
+                case Terrain.BUILDING:
+                    if (gameState.inventory.metal.current < gameState.inventory.metal.max) {
+                        if (confirm("Search building for metal?")) {
+                            gameState.inventory.metal.current++;
+                            addLogEntry("Found metal in the building!", 'success');
+                        }
+                    } else {
+                        addLogEntry("Building has no metal or your inventory is full.");
+                    }
+                    break;
+                case Terrain.ENEMY:
+                    startRpsBattle(newX, newY);
+                    return;
+                case Terrain.DOOR:
+                    winGame();
+                    return;
+            }
+            
+            // Update player position
+            gameState.grid[gameState.player.x][gameState.player.y] = Terrain.PLAIN;
+            gameState.player.x = newX;
+            gameState.player.y = newY;
+            gameState.grid[newX][newY] = Terrain.HUMAN;
+            
+            // Update move count and day/night cycle
+            gameState.player.moves++;
+            if (gameState.player.moves % 5 === 0) {
+                gameState.player.isDay = !gameState.player.isDay;
+                addLogEntry(gameState.player.isDay ? 
+                    "The sun rises! It's now daytime." : 
+                    "The sun sets! It's now nighttime.", 'highlight');
+            }
+            
+            // Check for death
+            if (gameState.player.health <= 0) {
+                gameOver("You have died. Game over.");
+                return;
+            }
+            
+            // Handle resource collection
+            if (terrain === Terrain.FOREST && gameState.inventory.wood.current < gameState.inventory.wood.max) {
+                if (confirm("Collect wood here?")) {
+                    gameState.inventory.wood.current++;
+                    addLogEntry("Wood collected successfully!", 'success');
+                }
+            } else if (terrain === Terrain.MOUNTAIN && gameState.inventory.rock.current < gameState.inventory.rock.max) {
+                if (confirm("Collect rock here?")) {
+                    gameState.inventory.rock.current++;
+                    addLogEntry("Rock collected successfully!", 'success');
+                }
+            }
+            
+            // Update UI and grid
+            updateUI();
+            renderGrid();
+            
+            // Auto-disable movement mode after move
+            gameState.isMoving = false;
+            elements.moveBtn.textContent = 'Move (W/A/S/D)';
+        }
+
+        // Start Rock-Paper-Scissors battle
+        function startRpsBattle(x, y) {
+            // Check if player has resources to play
+            const hasRock = gameState.inventory.rock.current > 0;
+            const hasPaper = gameState.inventory.wood.current >= 2;
+            const hasScissors = gameState.inventory.metal.current > 0;
+            
+            if (!hasRock && !hasPaper && !hasScissors) {
+                gameOver("You don't have any resources to fight the enemy!");
+                return;
+            }
+            
+            // Prepare RPS options
+            elements.rpsOptions.innerHTML = '';
+            
+            if (hasRock) {
+                const rockOption = document.createElement('div');
+                rockOption.className = 'rps-option';
+                rockOption.textContent = 'Rock (1 Rock)';
+                rockOption.dataset.choice = 'rock';
+                rockOption.addEventListener('click', () => playRps('rock'));
+                elements.rpsOptions.appendChild(rockOption);
+            }
+            
+            if (hasPaper) {
+                const paperOption = document.createElement('div');
+                paperOption.className = 'rps-option';
+                paperOption.textContent = 'Paper (2 Wood)';
+                paperOption.dataset.choice = 'paper';
+                paperOption.addEventListener('click', () => playRps('paper'));
+                elements.rpsOptions.appendChild(paperOption);
+            }
+            
+            if (hasScissors) {
+                const scissorsOption = document.createElement('div');
+                scissorsOption.className = 'rps-option';
+                scissorsOption.textContent = 'Scissors (1 Metal)';
+                scissorsOption.dataset.choice = 'scissors';
+                scissorsOption.addEventListener('click', () => playRps('scissors'));
+                elements.rpsOptions.appendChild(scissorsOption);
+            }
+            
+            // Show RPS modal
+            elements.rpsResult.innerHTML = '';
+            elements.rpsContinueBtn.style.display = 'none';
+            elements.rpsModal.style.display = 'flex';
+        }
+
+        // Play Rock-Paper-Scissors
+        function playRps(playerChoice) {
+            // Deduct resources
+            switch(playerChoice) {
+                case 'rock':
+                    gameState.inventory.rock.current--;
+                    break;
+                case 'paper':
+                    gameState.inventory.wood.current -= 2;
+                    break;
+                case 'scissors':
+                    gameState.inventory.metal.current--;
+                    break;
+            }
+            
+            // Enemy choice
+            const choices = ['rock', 'paper', 'scissors'];
+            const enemyChoice = choices[Math.floor(Math.random() * choices.length)];
+            
+            // Determine winner
+            let result;
+            if (playerChoice === enemyChoice) {
+                result = "It's a tie! You get another chance.";
+            } else if (
+                (playerChoice === 'rock' && enemyChoice === 'scissors') ||
+                (playerChoice === 'paper' && enemyChoice === 'rock') ||
+                (playerChoice === 'scissors' && enemyChoice === 'paper')
+            ) {
+                result = "You win the RPS battle! Enemy defeated.";
+            } else {
+                result = "You lose the RPS battle! Health -25.";
+                gameState.player.health -= 25;
+            }
+            
+            // Display result
+            elements.rpsResult.innerHTML = `
+                <p>You chose: <strong>${playerChoice}</strong></p>
+                <p>Enemy chose: <strong>${enemyChoice}</strong></p>
+                <p class="${result.includes('win') ? 'success' : 'danger'}">${result}</p>
+            `;
+            
+            // Show continue button
+            elements.rpsContinueBtn.style.display = 'block';
+            
+            // Disable options
+            const options = elements.rpsOptions.querySelectorAll('.rps-option');
+            options.forEach(option => {
+                option.classList.add('disabled');
+                option.style.pointerEvents = 'none';
+            });
+            
+            // Update UI
+            updateUI();
+            
+            // Check for death after loss
+            if (result.includes('lose')) {
+                if (gameState.player.health <= 0) {
+                    elements.rpsContinueBtn.textContent = 'Continue';
+                    elements.rpsContinueBtn.onclick = () => {
+                        closeRpsModal();
+                        gameOver("You have died. Game over.");
+                    };
+                } else if (gameState.player.health <= 30 && gameState.inventory.medicine.current > 0) {
+                    elements.rpsContinueBtn.textContent = 'Use Medicine';
+                    elements.rpsContinueBtn.onclick = () => {
+                        closeRpsModal();
+                        useMedicine();
+                    };
+                }
+            }
+            
+            // If won, mark enemy cell as plain
+            if (result.includes('win')) {
+                gameState.grid[gameState.player.x][gameState.player.y] = Terrain.PLAIN;
+            }
+            
+            // Add to log
+            addLogEntry(`RPS Battle: You (${playerChoice}) vs Enemy (${enemyChoice}) - ${result}`);
+        }
+
+        // Close RPS modal
+        function closeRpsModal() {
+            elements.rpsModal.style.display = 'none';
+            
+            // Update grid and UI
+            renderGrid();
+            updateUI();
+            
+            // Check for death
+            if (gameState.player.health <= 0) {
+                gameOver("You have died. Game over.");
+            }
+        }
+
+        // Use medicine
+        function useMedicine() {
+            if (gameState.player.health > 30) {
+                addLogEntry("You can only use medicine when health is 30 or below!", 'danger');
+                return;
+            }
+            
+            if (gameState.inventory.medicine.current === 0) {
+                addLogEntry("You don't have any medicine!", 'danger');
+                return;
+            }
+            
+            gameState.inventory.medicine.current--;
+            gameState.player.health += 40;
+            if (gameState.player.health > 100) gameState.player.health = 100;
+            
+            // Add resources
+            gameState.inventory.wood.current = Math.min(gameState.inventory.wood.current + 1, gameState.inventory.wood.max);
+            gameState.inventory.metal.current = Math.min(gameState.inventory.metal.current + 1, gameState.inventory.metal.max);
+            gameState.inventory.rock.current = Math.min(gameState.inventory.rock.current + 1, gameState.inventory.rock.max);
+            
+            addLogEntry("Medicine used! Health +40, and received 1 wood, 1 metal, and 1 rock.", 'success');
+            
+            // Update UI
+            updateUI();
+            renderGrid();
+        }
+
+        // Add entry to event log
+        function addLogEntry(message, className = '') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${className}`;
+            entry.textContent = message;
+            elements.eventLog.appendChild(entry);
+            elements.eventLog.scrollTop = elements.eventLog.scrollHeight;
+        }
+
+        // Win the game
+        function winGame() {
+            gameState.gameActive = false;
+            elements.gameOverTitle.textContent = "You Win!";
+            elements.gameOverMessage.textContent = "Congratulations! You reached the door and escaped!";
+            elements.gameOverModal.style.display = 'flex';
+            addLogEntry("You reached the door! You win!", 'success');
+        }
+
+        // Game over
+        function gameOver(message) {
+            gameState.gameActive = false;
+            elements.gameOverTitle.textContent = "Game Over";
+            elements.gameOverMessage.textContent = message;
+            elements.gameOverModal.style.display = 'flex';
+            addLogEntry(message, 'danger');
+        }
+
+        // Reset the game
+        function resetGame() {
+            // Close all modals
+            elements.introModal.style.display = 'none';
+            elements.rpsModal.style.display = 'none';
+            elements.gameOverModal.style.display = 'none';
+            
+            // Reset game state
+            gameState.player = {
+                x: 5,
+                y: 5,
+                health: 100,
+                moves: 0,
+                isDay: true
+            };
+            
+            gameState.inventory = {
+                wood: { current: 1, max: 5 },
+                metal: { current: 1, max: 5 },
+                rock: { current: 1, max: 5 },
+                medicine: { current: 1, max: 1 }
+            };
+            
+            gameState.isMoving = false;
+            gameState.gameActive = true;
+            
+            // Clear event log
+            elements.eventLog.innerHTML = '';
+            
+            // Regenerate grid
+            generateGrid();
+            renderGrid();
+            updateUI();
+            
+            // Reset buttons
+            elements.moveBtn.textContent = 'Move (W/A/S/D)';
+            
+            // Show intro
+            elements.introModal.style.display = 'flex';
+        }
+
+        // Initialize the game when loaded
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
